@@ -367,10 +367,16 @@ function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>
 function fmt(t){ if(t==null)return''; const m=Math.floor(t/60),s=Math.floor(t%60); return (m<10?'0':'')+m+':'+(s<10?'0':'')+s; }
 function addClip(e){
   if(window._mediaFirst){ $('#results').innerHTML=''; window._mediaFirst=false; }
-  const name=String(e.url).split('/').pop();
+  const url=String(e.url), name=url.split('/').pop();
+  const isVid=/\.(mp4|mov|webm|mkv|m4v|ogv)$/i.test(url);
+  const player=isVid
+    ? '<video controls preload="none" style="width:240px;max-width:100%;border-radius:6px;border:2px solid var(--line);background:#000" src="'+url+'"></video>'
+    : '<audio controls preload="none" style="width:100%" src="'+url+'"></audio>';
   const segs=(e.segments||[]).map(s=>'<div style="display:flex;gap:10px;margin:2px 0"><span style="color:var(--accent);font-variant-numeric:tabular-nums">'+fmt(s.start)+'</span><span>'+esc(s.text)+'</span></div>').join('');
   $('#results').insertAdjacentHTML('beforeend',
-    '<div class="hit"><div class="meta"><span>🎬 '+esc(name)+'</span><span class="score">'+(e.ok===false?'failed':(e.duration||'')+'s')+'</span></div><div class="txt">'+(segs||'<span style="color:var(--dim)">no speech detected</span>')+'</div></div>');
+    '<div class="hit"><div class="meta"><span>'+(isVid?'🎞️':'🎙️')+' '+esc(name)+'</span><span class="score">'+(e.ok===false?'failed':(e.duration||'')+'s')+'</span></div>'
+    +'<div style="margin:6px 0">'+player+'</div>'
+    +'<div class="txt">'+(segs||'<span style="color:var(--dim)">no speech detected</span>')+'</div></div>');
 }
 
 $('#teachBtn').onclick=doTeach; $('#uploadBtn').onclick=doUpload;

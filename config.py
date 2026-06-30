@@ -41,7 +41,10 @@ CANVAS_PX = GRID * TILE_PX
 # GPU_TYPE — the renderer GPU. RTX 4090 (24 GB) is cheap, fast, and fits sd-turbo
 # with room to spare. Bump only if you swap in a model that won't fit. See the GPU
 # table in the runpod-flash README for other options (L4, 5090, A100, ...).
-GPU_TYPE = GpuType.NVIDIA_GEFORCE_RTX_4090
+_GPU_NAME = os.getenv("WALL_GPU_TYPE", "NVIDIA_GEFORCE_RTX_4090")
+# Set WALL_GPU_TYPE=ANY to let RunPod pick any available GPU (use when a specific type
+# is sold out across datacenters — common for the 4090). sd-turbo fits almost anything.
+GPU_TYPE = getattr(GpuType, _GPU_NAME, GpuType.NVIDIA_GEFORCE_RTX_4090)
 
 # CPU spec for the cheap planner endpoint. "cpu3c-1-2" = 1 vCPU / 2 GB.
 CPU_TYPE = os.getenv("WALL_CPU_TYPE", "cpu3c-1-2")
@@ -160,4 +163,5 @@ SAMPLE_MEDIA = [u for u in os.getenv("WALL_SAMPLE_MEDIA", ",".join([
     "https://github.com/realpython/python-speech-recognition/raw/master/audio_files/harvard.wav",
     "https://github.com/realpython/python-speech-recognition/raw/master/audio_files/jackhammer.wav",
     "https://github.com/mozilla/DeepSpeech/raw/master/data/smoke_test/new-home-in-the-stars-16k.wav",
+    "https://media.w3.org/2010/05/sintel/trailer.mp4",   # a real VIDEO clip (audio track)
 ])).split(",") if u.strip()]

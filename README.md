@@ -12,6 +12,53 @@ makes the scale-to-zero economics impossible to miss.
 > One generic pipeline, made visible:
 > **cheap CPU split → wide GPU fan-out → scale to zero.**
 
+## The pitch
+
+Every team renting GPUs pays for idle. A box sits warm overnight so it's ready for a burst
+that lasts ten seconds. SwarmForge is the opposite: nothing runs until work arrives, then a
+swarm erupts, finishes in seconds, and bills you for exactly those seconds. Running 25 GPUs
+for 10 seconds costs the same as one GPU for 250 seconds — but it's done 25× faster, and
+then it's *gone*.
+
+The demo makes that economics impossible to miss. You point it at the live web, watch real
+GPU workers spike from zero, do real work — generate images, embed pages, transcribe clips —
+and drain back to zero, with a cost counter that closes on *"running this 24/7 would be
+$X/mo; you paid $0.0Y."* It's the workload serverless GPU was built for: bursty,
+unpredictable, embarrassingly parallel. The same pattern that powers
+[Civitai's 868,069 LoRA trainings a month on RunPod](https://www.runpod.io/case-studies/civitai).
+
+## Under the hood (tech)
+
+- **RunPod Flash** — serverless GPU. Each worker is a Python `@Endpoint` with
+  `workers=(0, N)`; no Dockerfile, no idle cost. Endpoints provision on first call and
+  scale to zero on `idle_timeout`.
+- **Bright Data** — web-scale ingestion. Web Unlocker / API fetches pages and media past
+  bot-walls so the swarm has real data to chew on.
+- **Models**: `sd-turbo` (single-step diffusion tiles), SD-1.5 + **PEFT LoRA** (DreamBooth
+  fine-tune), `all-MiniLM-L6-v2` (embeddings), **faster-whisper** (transcription).
+- **Orchestrator**: an `aiohttp` server streams results to the browser over Server-Sent
+  Events; `asyncio.as_completed` drives the fan-out so tiles/clips appear the instant their
+  worker finishes; a numpy cosine index serves search.
+- **Resilience**: every run is recorded; a self-contained `offline.html` replays any mode
+  with no server, no network, no GPU.
+
+## Real-world use cases
+
+This isn't a toy — each mode maps to a workload people pay for:
+
+- **Custom image generation at scale** (Teach & Paint) — creator platforms (Civitai-style),
+  brand/product art, per-customer fine-tuned style libraries. Train on demand, render a
+  preview wall, ship the adapter.
+- **Build a searchable knowledge base from the live web** (Embed) — point it at competitor
+  sites, news, docs, or a Slack/Notion export; index thousands of chunks in one burst;
+  serve a low-latency `/search`. The ingestion half of any RAG pipeline.
+- **Footage / media logging** (Media) — video editors and journalists drop hours of clips,
+  the swarm transcribes them in parallel, and you search a phrase to jump to the exact
+  timecode. Also podcast/meeting search and broadcast compliance monitoring.
+- **The general pattern** — any bursty, parallel GPU job that's wasteful on always-on
+  infra: batch upscaling/background-removal, document OCR, embedding refreshes, mass
+  transcription. Swap the function body, keep the orchestration.
+
 ```
   browser (paints tiles / logs clips)
         ▲  Server-Sent Events
