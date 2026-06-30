@@ -1,0 +1,8 @@
+A diffusion model paints an image by starting from pure noise and denoising it step by
+step toward something that matches a text prompt. Turbo variants distill this down to a
+single step, trading a little fidelity for a large speed gain — ideal when you want many
+small images fast rather than one slow masterpiece.
+
+Splitting a large canvas into a grid of tiles and rendering each tile on its own worker
+is how you turn one big slow job into many small fast ones running in parallel. The
+canvas fills in tile by tile as each worker reports back, a live picture of the fan-out.

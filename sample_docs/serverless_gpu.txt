@@ -1,0 +1,8 @@
+Serverless GPU compute means you do not keep a machine running. Workers spin up when a
+job arrives and scale back to zero the moment the queue is empty. You pay only for the
+seconds a worker is actually computing. This is the opposite of renting a dedicated GPU
+box by the hour, where you pay even while it sits idle overnight.
+
+The hard part serverless solves is bursty, parallel work: rendering a thousand image
+tiles, embedding a corpus of documents, transcoding a video. Each unit of work goes to
+its own worker, all of them run at once, and then the whole pool evaporates.

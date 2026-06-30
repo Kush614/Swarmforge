@@ -1,0 +1,9 @@
+A text embedding turns a chunk of writing into a vector of numbers that captures its
+meaning. Two passages about the same idea land near each other in this vector space even
+if they share no words. Search then becomes geometry: embed the query, find the nearest
+chunk vectors by cosine similarity, return those chunks.
+
+This is the engine behind semantic search and retrieval-augmented generation. The
+embedding step is embarrassingly parallel — every chunk is independent — which makes it a
+perfect fit for the same fan-out machinery that renders image tiles. Swap the function
+body, keep the orchestration.

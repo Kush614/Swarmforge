@@ -1,0 +1,7 @@
+# Local orchestrator deps ONLY — what your laptop needs to run wall.py / app.py and
+# serve the projector page. The heavy GPU deps (torch, diffusers, sentence-transformers)
+# are NOT here: they are declared per-endpoint in @Endpoint(dependencies=[...]) and are
+# installed on the remote RunPod workers, never locally. See SPEC §9.
+runpod-flash
+aiohttp>=3.9
+numpy>=1.24

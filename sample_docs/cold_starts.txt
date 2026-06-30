@@ -1,0 +1,8 @@
+Cold start is the time between a request arriving and a worker being ready to serve it.
+For a tiny CPU function this is milliseconds. For a GPU worker that must pull a multi-
+gigabyte container and load model weights into VRAM, the first cold start can be minutes.
+
+The standard mitigation is pre-warming: send one throwaway request ahead of time so the
+worker builds its environment and caches weights before real traffic shows up. Keeping a
+minimum of one warm worker eliminates cold starts entirely, at the cost of always paying
+for that one worker. Flashboot and cached images shrink subsequent cold starts to seconds.

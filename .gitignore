@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.runpod/
+*.log
+.flash/
+# keep docs/fallback.mp4 tracked (the demo safety net), ignore other large media
+docs/*.mov
+docs/*.tmp.mp4

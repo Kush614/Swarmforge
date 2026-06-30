@@ -1,0 +1,9 @@
+The economics of scale-to-zero are simple but counterintuitive. Running twenty-five GPUs
+for ten seconds costs the same as running one GPU for two hundred and fifty seconds — but
+the twenty-five-GPU version finishes in ten seconds instead of four minutes. You buy
+wall-clock latency with parallelism at no extra total cost, because billing is per
+worker-second regardless of how many workers run at once.
+
+That is the punchline of the self-painting wall: a whole canvas rendered by a swarm, the
+swarm gone seconds later, and a bill measured in pennies. Idle infrastructure, the thing
+you usually pay the most for, simply does not exist here.
