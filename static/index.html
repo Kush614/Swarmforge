@@ -106,6 +106,30 @@
   .bar > i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
   .pulse .v{animation:pop .25s ease}
   @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+  /* ---- visual polish ---- */
+  body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(55% 45% at 18% 8%, rgba(255,144,232,.12), transparent 60%),
+      radial-gradient(50% 50% at 88% 92%, rgba(35,160,148,.12), transparent 60%),
+      radial-gradient(40% 40% at 60% 40%, rgba(124,92,255,.06), transparent 60%);
+    animation:bgpulse 7s ease-in-out infinite alternate}
+  @keyframes bgpulse{from{opacity:.55;transform:scale(1)}to{opacity:1;transform:scale(1.06)}}
+  .title{ text-shadow:0 0 24px rgba(255,144,232,.25)}
+  .title .dot{color:var(--accent);text-shadow:0 0 14px var(--accent);animation:dotpulse 1.6s ease-in-out infinite}
+  @keyframes dotpulse{50%{opacity:.5}}
+  .canvas-wrap{box-shadow:8px 8px 0 #000, 0 0 70px rgba(255,144,232,.14)}
+  .canvas-wrap.done{animation:winglow 1s ease}
+  @keyframes winglow{0%{box-shadow:8px 8px 0 #000,0 0 0 rgba(255,144,232,0)}
+    40%{box-shadow:8px 8px 0 #000,0 0 90px rgba(255,144,232,.7)}
+    100%{box-shadow:8px 8px 0 #000,0 0 70px rgba(255,144,232,.14)}}
+  .stat.cost{animation:costglow 2.6s ease-in-out infinite alternate}
+  @keyframes costglow{from{box-shadow:6px 6px 0 var(--pink-dk)}
+    to{box-shadow:6px 6px 0 var(--pink-dk),0 0 34px rgba(255,144,232,.45)}}
+  .stat.cost .v{text-shadow:0 0 18px rgba(255,144,232,.5)}
+  #closeLine{transition:opacity .4s;text-shadow:0 0 16px rgba(255,144,232,.4)}
+  .seg button.on{box-shadow:inset 0 0 18px rgba(42,11,36,.35)}
+  button.primary{position:relative}
 </style>
 </head>
 <body>
@@ -226,11 +250,49 @@ function paintTile(e){
     ctx.moveTo(e.x,e.y);ctx.lineTo(e.x+e.w,e.y+e.h);ctx.moveTo(e.x+e.w,e.y);ctx.lineTo(e.x,e.y+e.h);ctx.stroke();
     flash(e,'#ff5a5f'); return; }
   const img=new Image();
-  img.onload=()=>{ctx.drawImage(img,e.x,e.y,e.w,e.h);flash(e,'#ff90e8');};
+  img.onload=()=>animateTileIn(img,e);
   img.src='data:image/png;base64,'+e.png_b64;
 }
-function flash(e,color){ octx.strokeStyle=color;octx.lineWidth=8;octx.shadowColor=color;octx.shadowBlur=24;
-  octx.strokeRect(e.x+4,e.y+4,e.w-8,e.h-8); setTimeout(()=>octx.clearRect(e.x,e.y,e.w,e.h),320); }
+// each piece drops + fades into place with a scale-up (the "jigsaw" landing)
+function animateTileIn(img,e){
+  const t0=performance.now(), dur=280;
+  function frame(now){
+    const p=Math.min(1,(now-t0)/dur), k=1-Math.pow(1-p,3);
+    ctx.clearRect(e.x,e.y,e.w,e.h);
+    ctx.save(); ctx.globalAlpha=k;
+    const s=0.8+0.2*k, dw=e.w*s, dh=e.h*s;
+    ctx.drawImage(img, e.x+(e.w-dw)/2, e.y+(e.h-dh)/2, dw, dh);
+    ctx.restore();
+    if(p<1) requestAnimationFrame(frame);
+    else { ctx.drawImage(img,e.x,e.y,e.w,e.h); flash(e,'#ff90e8'); }
+  }
+  requestAnimationFrame(frame);
+}
+function flash(e,color){ octx.strokeStyle=color;octx.lineWidth=8;octx.shadowColor=color;octx.shadowBlur=28;
+  octx.strokeRect(e.x+3,e.y+3,e.w-6,e.h-6); setTimeout(()=>octx.clearRect(e.x-4,e.y-4,e.w+8,e.h+8),300); }
+// bright light sweep across the finished wall
+function sweep(){
+  const w=overlay.width,h=overlay.height,t0=performance.now(),dur=750;
+  function f(now){ const p=Math.min(1,(now-t0)/dur); octx.clearRect(0,0,w,h);
+    const x=p*w, g=octx.createLinearGradient(x-120,0,x+120,0);
+    g.addColorStop(0,'rgba(255,144,232,0)');g.addColorStop(.5,'rgba(255,144,232,.55)');g.addColorStop(1,'rgba(255,144,232,0)');
+    octx.fillStyle=g; octx.fillRect(x-120,0,240,h);
+    if(p<1) requestAnimationFrame(f); else octx.clearRect(0,0,w,h);
+  }
+  requestAnimationFrame(f);
+}
+// animate a number counting up (the closing flourish)
+function countUp(el,to,dur,prefix,dec){
+  const t0=performance.now();
+  function f(now){ const p=Math.min(1,(now-t0)/dur), v=to*(1-Math.pow(1-p,3));
+    el.textContent=prefix+v.toFixed(dec); if(p<1) requestAnimationFrame(f); }
+  requestAnimationFrame(f);
+}
+function finishFx(e){
+  sweep();
+  const wrap=$('#canvasWrap'); wrap.classList.remove('done'); void wrap.offsetWidth; wrap.classList.add('done');
+  if(e && e.cost!=null) countUp($('#sCost .v'), e.cost, 1100, '$', 4);
+}
 function showClose(e){
   const el=$('#closeLine'); if(e.always_on_month==null){el.style.display='none';return;}
   el.innerHTML='One LoRA + preview wall: <b>$'+e.cost.toFixed(4)+'</b> &nbsp;·&nbsp; '+(e.worker_seconds||0)+'s of GPU &nbsp;·&nbsp; gone in seconds.'+
@@ -263,7 +325,7 @@ function handleEvent(e){ switch(e.type){
       $('#sTiles .k').textContent='Tiles'; $('#sTiles .v').textContent='0/'+e.total; break;
     case 'tile': paintTile(e); break;
     case 'stats': updateStats(e); break;
-    case 'done': updateStats(e); showClose(e); break;
+    case 'done': updateStats(e); finishFx(e); showClose(e); break;
     case 'media_start':
       if(curView!=='media') showView('media');
       $('#results').innerHTML='<div class="hit"><div class="txt" style="color:var(--dim)">Transcribing '+e.total+' clips across the swarm…</div></div>';
@@ -276,7 +338,7 @@ function handleEvent(e){ switch(e.type){
       if(curView!=='media') $('#results').innerHTML='<div class="hit"><div class="txt" style="color:var(--dim)">Embedding '+e.total+' chunks across the swarm…</div></div>';
       $('#sTiles .k').textContent=(curView==='media')?'Segments':'Chunks'; hideClose(); break;
     case 'embed_stats': updateStats(e); break;
-    case 'embed_done': updateStats(e); showClose(e); break;
+    case 'embed_done': updateStats(e); if(e.cost!=null) countUp($('#sCost .v'),e.cost,1100,'$',4); showClose(e); break;
     case 'log': console.log('[wall]',e.message); break;
 }}
 function connect(){
