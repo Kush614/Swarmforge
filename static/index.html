@@ -316,10 +316,18 @@ function offlineReplay(kind){
   const r=window.OFFLINE_RUNS||{};
   return replayEvents(r[kind]||r.last, true);
 }
+// served app: replay the recorded cache for a mode (used in MOCK so the demo shows the
+// real cached results instead of running mock — bulletproof, no cold start).
+async function replayCache(kind){
+  if(window.OFFLINE) return offlineReplay(kind);
+  try{ const r=await fetch('/static/cache/'+kind+'.json',{cache:'no-store'}); if(r.ok) return replayEvents(await r.json(), true); }catch(_){}
+  return loadLast(true);
+}
 
 // actions
 async function doTeach(){
   if(window.OFFLINE) return offlineReplay('teach');
+  if(CFG.mock) return replayCache('teach');
   const concept=$('#concept').value.trim()||'sks dog';
   const use_cached=$('#useCached').checked;
   const source=$('#fromWeb').checked?'web':'folder';
@@ -328,6 +336,7 @@ async function doTeach(){
 }
 async function doIngest(){
   if(window.OFFLINE) return offlineReplay('embed');
+  if(CFG.mock) return replayCache('embed');
   const url=$('#url').value.trim(); if(!url){alert('enter a URL to scrape');return;}
   $('#results').innerHTML='<div class="hit"><div class="txt" style="color:var(--dim)">Bright Data scraping '+esc(url)+' → embedding across the swarm…</div></div>';
   await fetch('/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
@@ -340,13 +349,15 @@ async function doUpload(){
 }
 async function doPaint(){
   if(window.OFFLINE) return offlineReplay('paint');
+  if(CFG.mock) return replayCache('paint');
   const prompt=$('#prompt').value.trim()||'a neon city at night';
   clearCanvas(); $('#stageMsg').style.display='none';
   await fetch('/paint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
 }
-async function doEmbed(){ if(window.OFFLINE) return offlineReplay('embed'); await fetch('/embed',{method:'POST'}); }
+async function doEmbed(){ if(window.OFFLINE) return offlineReplay('embed'); if(CFG.mock) return replayCache('embed'); await fetch('/embed',{method:'POST'}); }
 async function doTranscribe(){
   if(window.OFFLINE){ showView('media'); return offlineReplay('media'); }
+  if(CFG.mock){ showView('media'); return replayCache('media'); }
   showView('media');
   $('#results').innerHTML='<div class="hit"><div class="txt" style="color:var(--dim)">Starting transcription across the swarm…</div></div>';
   await fetch('/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
