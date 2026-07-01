@@ -267,7 +267,7 @@ function handleEvent(e){ switch(e.type){
     case 'media_start':
       if(curView!=='media') showView('media');
       $('#results').innerHTML='<div class="hit"><div class="txt" style="color:var(--dim)">Transcribing '+e.total+' clips across the swarm…</div></div>';
-      $('#sTiles .k').textContent='Clips'; hideClose(); window._mediaFirst=true; break;
+      $('#sTiles .k').textContent='Clips'; hideClose(); window._mediaFirst=true; window._mediaSegs=[]; break;
     case 'media_clip': addClip(e); break;
     case 'media_stats': updateStats(e); break;
     case 'media_done': break;
@@ -363,9 +363,10 @@ async function doTranscribe(){
   await fetch('/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
 }
 async function doSearch(qSel){
-  if(window.OFFLINE){ alert('Live search needs the server running. Use ▶ Replay or a tab to see recorded runs.'); return; }
   qSel=qSel||'#query';
   const query=$(qSel).value.trim(); if(!query) return;
+  if(qSel==='#mquery') return mediaSearch(query);   // real transcripts, client-side, offline-safe
+  if(window.OFFLINE){ alert('Live doc search needs the server. Use ▶ Replay or a tab for recorded runs.'); return; }
   $('#results').innerHTML='<div class="hit"><div class="txt" style="color:var(--dim)">Searching…</div></div>';
   const r=await fetch('/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query})}).then(r=>r.json());
   $('#results').innerHTML=(r.results||[]).map(h=>{
@@ -388,6 +389,17 @@ function addClip(e){
     '<div class="hit"><div class="meta"><span>'+(isVid?'🎞️':'🎙️')+' '+esc(name)+'</span><span class="score">'+(e.ok===false?'failed':(e.duration||'')+'s')+'</span></div>'
     +'<div style="margin:6px 0">'+player+'</div>'
     +'<div class="txt">'+(segs||'<span style="color:var(--dim)">no speech detected</span>')+'</div></div>');
+  window._mediaSegs=window._mediaSegs||[];
+  (e.segments||[]).forEach(s=>window._mediaSegs.push({file:name,t:s.start,text:s.text}));
+}
+// client-side keyword search over the cached transcripts — real spoken words, works
+// offline with no compute, jumps to the timecode.
+function mediaSearch(query){
+  const q=query.toLowerCase(), segs=window._mediaSegs||[];
+  const hits=segs.filter(s=>String(s.text).toLowerCase().includes(q)).slice(0,10);
+  $('#results').innerHTML=hits.map(h=>
+    '<div class="hit"><div class="meta"><span>🎬 '+esc(h.file)+' <span style="color:var(--accent)">@ '+fmt(h.t)+'</span></span></div><div class="txt">'+esc(h.text)+'</div></div>'
+  ).join('')||'<div class="hit"><div class="txt">no moment matches “'+esc(query)+'” — try: someone, country, stars, beer</div></div>';
 }
 
 $('#teachBtn').onclick=doTeach; $('#uploadBtn').onclick=doUpload;
